@@ -37,14 +37,22 @@ module cpu(
     
     // ALU second operand
     wire [15:0] alu_operand2 = alu_src ? immediate : reg_data2;
-    
+
+    // Fetch/execute cycle: the single memory port is used for the
+    // instruction fetch in FETCH and for data access in EXECUTE
+    localparam FETCH   = 1'b0;
+    localparam EXECUTE = 1'b1;
+    reg state;
+
+    wire [15:0] mem_address = (state == FETCH) ? pc : immediate;
+
     // Modules instantiation
     memory mem(
         .clk(clk),
-        .address(pc),
+        .address(mem_address),
         .write_data(reg_data1),
-        .mem_read(mem_read),
-        .mem_write(mem_write),
+        .mem_read((state == FETCH) | mem_read),
+        .mem_write(mem_write & (state == EXECUTE)),
         .read_data(mem_data)
     );
     
@@ -55,7 +63,7 @@ module cpu(
         .read_reg2(reg_src2),
         .write_reg(reg_dst),
         .write_data(alu_result),
-        .reg_write(reg_write),
+        .reg_write(reg_write & (state == EXECUTE)),
         .read_data1(reg_data1),
         .read_data2(reg_data2)
     );
@@ -94,16 +102,22 @@ module cpu(
         if (reset) begin
             pc <= 16'b0;
             ir <= 16'b0;
+            state <= FETCH;
         end
         else if (!halt) begin
-            // Instruction fetch
-            ir <= mem_data;
-            
-            // Update PC
-            if (pc_update)
-                pc <= pc + 1;
-            else
-                pc <= immediate;
+            if (state == FETCH) begin
+                // Latch the instruction at PC
+                ir <= mem_data;
+                state <= EXECUTE;
+            end
+            else begin
+                // Update PC after the instruction has executed
+                if (pc_update)
+                    pc <= pc + 1;
+                else
+                    pc <= immediate;
+                state <= FETCH;
+            end
         end
     end
     

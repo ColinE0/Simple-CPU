@@ -35,12 +35,23 @@ module cpu_tb;
         // Wait for halt
         wait(halt);
         #20;
-        
+
         // Verify results
         // The test program should have loaded 10 and 11, added them (21), and stored at address 12
-        if (alu_out !== 21) $display("Test failed: ALU output incorrect");
-        else $display("Test passed: ALU output correct");
-        
+        if (uut.reg_file.registers[3] !== 21)
+            $display("Test failed: R3 = %0d, expected 21", uut.reg_file.registers[3]);
+        else if (uut.mem.mem[12] !== 21)
+            $display("Test failed: mem[12] = %0d, expected 21", uut.mem.mem[12]);
+        else
+            $display("Test passed: R3 = 21 and mem[12] = 21");
+
+        $finish;
+    end
+
+    // Watchdog: fail instead of hanging if the CPU never halts
+    initial begin
+        #3000;
+        $display("Test failed: watchdog timeout, CPU never halted");
         $finish;
     end
     

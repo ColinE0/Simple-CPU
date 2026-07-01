@@ -81,17 +81,23 @@ module control_unit(
                 halt = 1;
                 pc_update = 0;
             end
-            // Other operations similar to ADD/SUB
-            default: begin
-                // Handle other ALU operations
-                if (instruction[15:12] >= 4'b0100 && instruction[15:12] <= 4'b1010) begin
-                    reg_dst = instruction[11:9];
-                    reg_src1 = instruction[8:6];
-                    reg_src2 = instruction[5:3];
-                    alu_op = instruction[15:12];
-                    reg_write = 1;
-                end
+            // Other register-register ALU operations
+            MUL, DIV, AND, OR, NOT, XOR: begin
+                reg_dst = instruction[11:9];
+                reg_src1 = instruction[8:6];
+                reg_src2 = instruction[5:3];
+                reg_write = 1;
+                // Map instruction opcode to the ALU's operation encoding
+                case (instruction[15:12])
+                    MUL: alu_op = 4'b0010;
+                    DIV: alu_op = 4'b0011;
+                    AND: alu_op = 4'b0100;
+                    OR:  alu_op = 4'b0101;
+                    NOT: alu_op = 4'b0110;
+                    XOR: alu_op = 4'b0111;
+                endcase
             end
+            default: ; // Unknown opcode: treated as NOP
         endcase
     end
     
