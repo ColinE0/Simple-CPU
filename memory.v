@@ -29,16 +29,13 @@ module memory (
         end
     end
 
-    // Asynchronous read operation
+    // Asynchronous read operation; drives 0 when idle (no internal
+    // tri-state bus, so the design stays synthesizable)
     always @(*) begin
-        if (mem_read) begin
+        if (mem_read)
             read_data = mem[address];
-            // Optional: Display reads during simulation
-            $display("Memory Read:  Addr=%h Data=%h", address, read_data);
-        end
-        else begin
-            read_data = 16'hzzzz;  // High impedance when not reading
-        end
+        else
+            read_data = 16'h0000;
     end
 
 endmodule

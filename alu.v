@@ -35,7 +35,8 @@ module alu(
                 result = operand1 * operand2;
             end
             DIV: begin
-                result = operand1 / operand2;
+                // Divide-by-zero is defined to return 0 (avoids x-propagation)
+                result = (operand2 == 0) ? 16'b0 : operand1 / operand2;
             end
             AND: begin
                 result = operand1 & operand2;

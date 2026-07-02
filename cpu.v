@@ -21,6 +21,7 @@ module cpu(
     wire mem_read;
     wire mem_write;
     wire alu_src;
+    wire mem_to_reg;
     wire [2:0] reg_dst;
     wire [2:0] reg_src1;
     wire [2:0] reg_src2;
@@ -62,7 +63,7 @@ module cpu(
         .read_reg1(reg_src1),
         .read_reg2(reg_src2),
         .write_reg(reg_dst),
-        .write_data(alu_result),
+        .write_data(mem_to_reg ? mem_data : alu_result),
         .reg_write(reg_write & (state == EXECUTE)),
         .read_data1(reg_data1),
         .read_data2(reg_data2)
@@ -84,6 +85,7 @@ module cpu(
         .mem_read(mem_read),
         .mem_write(mem_write),
         .alu_src(alu_src),
+        .mem_to_reg(mem_to_reg),
         .reg_dst(reg_dst),
         .reg_src1(reg_src1),
         .reg_src2(reg_src2),

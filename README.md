@@ -5,11 +5,11 @@
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 A simple 16-bit CPU written in Verilog, built as a learning project. Von Neumann
-design with a 16-bit datapath, eight general-purpose registers, a custom 12-instruction
+design with a 16-bit datapath, eight general-purpose registers, a custom 13-instruction
 ISA, and a self-checking testbench.
 
 This project demonstrates:
-- **A custom 16-bit ISA**: 4-bit opcodes with register-register arithmetic, load-immediate, store, jump, and halt
+- **A custom 16-bit ISA**: 4-bit opcodes with register-register arithmetic, load-immediate, memory load/store, jump, and halt
 - **A two-phase fetch/execute cycle**: the single memory port is shared, serving instruction fetch in one cycle and data access in the next
 - **A modular datapath**: ALU, register file, control unit, and memory as separate, individually readable modules
 - **Correct RTL discipline**: non-blocking assignments in the clocked FSM, blocking assignments in the combinational decoders
@@ -30,6 +30,7 @@ graph TD
     IMM[Immediate] --> AMUX
     AMUX -->|FETCH: PC / EXECUTE: imm| MEM[64K x 16 Unified Memory]
     MEM -->|instruction| IR[Instruction Register]
+    MEM -->|load data| RF
     IR --> CU[Control Unit]
     CU -->|control signals| RF[Register File 8 x 16]
     CU -->|ALU op| ALU
@@ -43,11 +44,11 @@ PC and latches the instruction, **EXECUTE** drives it with the immediate for dat
 access, performs the ALU operation, writes back, and updates the PC.
 
 ## Instruction Set
-4-bit opcode in `[15:12]`, 3-bit register fields, 9-bit immediate for LOAD/STORE.
+4-bit opcode in `[15:12]`, 3-bit register fields, 9-bit immediate for LOAD/LDM/STORE.
 
 | Mnemonic | Opcode | Format | Effect |
 |----------|--------|--------|--------|
-| LOAD | `0001` | `LOAD Rd, imm` | Rd = imm |
+| LOAD | `0001` | `LOAD Rd, imm` | Rd = imm (load immediate) |
 | ADD | `0010` | `ADD Rd, Rs1, Rs2` | Rd = Rs1 + Rs2 |
 | STORE | `0011` | `STORE Rs, addr` | mem[addr] = Rs |
 | SUB | `0100` | `SUB Rd, Rs1, Rs2` | Rd = Rs1 - Rs2 |
@@ -58,6 +59,7 @@ access, performs the ALU operation, writes back, and updates the PC.
 | NOT | `1001` | `NOT Rd, Rs1` | Rd = ~Rs1 |
 | XOR | `1010` | `XOR Rd, Rs1, Rs2` | Rd = Rs1 ^ Rs2 |
 | JUMP | `1011` | `JUMP addr` | PC = addr |
+| LDM | `1100` | `LDM Rd, addr` | Rd = mem[addr] (load from memory) |
 | HALT | `1111` | `HALT` | stop execution |
 
 ## Repository Structure
@@ -69,7 +71,7 @@ access, performs the ALU operation, writes back, and updates the PC.
 ├── register_file.v     # 8 x 16-bit register file
 ├── memory.v            # 64K x 16 unified memory, loaded from hex
 ├── cpu_tb.v            # Self-checking testbench with watchdog
-├── program.hex         # Demo program (load, add, store, halt)
+├── program.hex         # Demo program (load, add, store, load back, jump, halt)
 ├── pad_hex.py          # Expands program.hex to the full 64K image
 ├── 📄 README.md        # This documentation
 ├── 📄 .gitignore       # Ignores sim binary and generated hex
@@ -85,17 +87,23 @@ iverilog -o sim cpu_tb.v cpu.v alu.v control_unit.v memory.v register_file.v
 vvp sim
 ```
 
-Expected output (the demo program loads 10 and 11, adds them, and stores 21 at
-address 12):
+Expected output (the demo program loads 10 and 11, adds them, stores 21 at
+address 12, loads it back with LDM, and jumps over a LOAD that must not execute):
 ```
-Test passed: R3 = 21 and mem[12] = 21
+Test passed: R3 = 21, mem[12] = 21, LDM read back 21, JUMP skipped LOAD R5
 ```
 
 ## Design Notes
 - The memory has a single port, so fetch and data access are time-multiplexed by the
   two-phase FSM. Register and memory writes are gated to the EXECUTE phase.
+- Register write-back is muxed by `mem_to_reg`: LDM writes memory data, everything
+  else writes the ALU result. LOAD (immediate) never touches memory; the immediate
+  passes through the ALU's MOV operation.
 - The control unit maps instruction opcodes to the ALU's internal operation encoding;
   the two encodings are intentionally decoupled.
+- Divide-by-zero is defined to return 0 rather than propagate x through the datapath.
+- The memory read bus drives 0 when idle instead of high-impedance, so the design
+  contains no internal tri-state and stays synthesizable.
 - The testbench checks architectural state (register file and memory) rather than
   transient datapath signals, and a watchdog timer makes a hung simulation fail loudly.
 

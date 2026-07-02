@@ -37,13 +37,18 @@ module cpu_tb;
         #20;
 
         // Verify results
-        // The test program should have loaded 10 and 11, added them (21), and stored at address 12
+        // The test program loads 10 and 11, adds them (21), stores the sum at
+        // address 12, loads it back into R4 with LDM, then jumps over LOAD R5
         if (uut.reg_file.registers[3] !== 21)
             $display("Test failed: R3 = %0d, expected 21", uut.reg_file.registers[3]);
         else if (uut.mem.mem[12] !== 21)
             $display("Test failed: mem[12] = %0d, expected 21", uut.mem.mem[12]);
+        else if (uut.reg_file.registers[4] !== 21)
+            $display("Test failed: R4 = %0d, expected 21 from LDM readback", uut.reg_file.registers[4]);
+        else if (uut.reg_file.registers[5] !== 0)
+            $display("Test failed: R5 = %0d, expected 0 (JUMP should skip LOAD R5)", uut.reg_file.registers[5]);
         else
-            $display("Test passed: R3 = 21 and mem[12] = 21");
+            $display("Test passed: R3 = 21, mem[12] = 21, LDM read back 21, JUMP skipped LOAD R5");
 
         $finish;
     end

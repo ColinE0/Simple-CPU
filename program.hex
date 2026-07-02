@@ -2,4 +2,7 @@
 140B  // LOAD R2, 11
 2650  // ADD R3, R1, R2
 360C  // STORE R3, 12
+C80C  // LDM R4, 12
+B007  // JUMP 7
+1A63  // LOAD R5, 99 (skipped by the JUMP)
 F000  // HALT

@@ -5,6 +5,7 @@ module control_unit(
     output reg mem_read,
     output reg mem_write,
     output reg alu_src,
+    output reg mem_to_reg,
     output reg [2:0] reg_dst,
     output reg [2:0] reg_src1,
     output reg [2:0] reg_src2,
@@ -25,6 +26,7 @@ module control_unit(
     parameter NOT    = 4'b1001;
     parameter XOR    = 4'b1010;
     parameter JUMP   = 4'b1011;
+    parameter LDM    = 4'b1100;
     parameter HALT   = 4'b1111;
     
     always @(*) begin
@@ -34,6 +36,7 @@ module control_unit(
         mem_read = 0;
         mem_write = 0;
         alu_src = 0;
+        mem_to_reg = 0;
         reg_dst = 3'b0;
         reg_src1 = 3'b0;
         reg_src2 = 3'b0;
@@ -55,6 +58,14 @@ module control_unit(
                 reg_src1 = instruction[11:9];
                 immediate = {7'b0, instruction[8:0]};
                 mem_write = 1;
+            end
+            LDM: begin
+                // Format: LDM Rd, addr (load from memory)
+                reg_dst = instruction[11:9];
+                immediate = {7'b0, instruction[8:0]};
+                mem_read = 1;
+                mem_to_reg = 1;
+                reg_write = 1;
             end
             ADD: begin
                 // Format: ADD Rd, Rs1, Rs2
