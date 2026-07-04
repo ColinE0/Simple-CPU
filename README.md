@@ -5,11 +5,11 @@
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 A simple 16-bit CPU written in Verilog, built as a learning project. Von Neumann
-design with a 16-bit datapath, eight general-purpose registers, a custom 13-instruction
+design with a 16-bit datapath, eight general-purpose registers, a custom 15-instruction
 ISA, and a self-checking testbench.
 
 This project demonstrates:
-- **A custom 16-bit ISA**: 4-bit opcodes with register-register arithmetic, load-immediate, memory load/store, jump, and halt
+- **A custom 16-bit ISA**: 4-bit opcodes with register-register arithmetic, load-immediate, memory load/store, unconditional and conditional jumps, and halt
 - **A two-phase fetch/execute cycle**: the single memory port is shared, serving instruction fetch in one cycle and data access in the next
 - **A modular datapath**: ALU, register file, control unit, and memory as separate, individually readable modules
 - **Correct RTL discipline**: non-blocking assignments in the clocked FSM, blocking assignments in the combinational decoders
@@ -44,7 +44,7 @@ PC and latches the instruction, **EXECUTE** drives it with the immediate for dat
 access, performs the ALU operation, writes back, and updates the PC.
 
 ## Instruction Set
-4-bit opcode in `[15:12]`, 3-bit register fields, 9-bit immediate for LOAD/LDM/STORE.
+4-bit opcode in `[15:12]`, 3-bit register fields, 9-bit immediate for LOAD/LDM/STORE/JZ/JNZ.
 
 | Mnemonic | Opcode | Format | Effect |
 |----------|--------|--------|--------|
@@ -60,6 +60,8 @@ access, performs the ALU operation, writes back, and updates the PC.
 | XOR | `1010` | `XOR Rd, Rs1, Rs2` | Rd = Rs1 ^ Rs2 |
 | JUMP | `1011` | `JUMP addr` | PC = addr |
 | LDM | `1100` | `LDM Rd, addr` | Rd = mem[addr] (load from memory) |
+| JZ | `1101` | `JZ Rs, addr` | if (Rs == 0) PC = addr |
+| JNZ | `1110` | `JNZ Rs, addr` | if (Rs != 0) PC = addr |
 | HALT | `1111` | `HALT` | stop execution |
 
 ## Repository Structure
@@ -71,7 +73,7 @@ access, performs the ALU operation, writes back, and updates the PC.
 ├── register_file.v     # 8 x 16-bit register file
 ├── memory.v            # 64K x 16 unified memory, loaded from hex
 ├── cpu_tb.v            # Self-checking testbench with watchdog
-├── program.hex         # Demo program (load, add, store, load back, jump, halt)
+├── program.hex         # Demo program (arithmetic, memory, jump, countdown loop)
 ├── 📄 README.md        # This documentation
 ├── 📄 .gitignore       # Ignores the sim binary and waveforms
 └── 📄 LICENSE          # MIT License
@@ -85,10 +87,11 @@ iverilog -o sim cpu_tb.v cpu.v alu.v control_unit.v memory.v register_file.v
 vvp sim
 ```
 
-Expected output (the demo program loads 10 and 11, adds them, stores 21 at
-address 12, loads it back with LDM, and jumps over a LOAD that must not execute):
+Expected output (the demo program adds 10 and 11, round-trips the sum through
+memory, jumps over a LOAD that must not execute, runs a countdown loop closed
+by JNZ, and finishes with a JZ taken at zero):
 ```
-Test passed: R3 = 21, mem[12] = 21, LDM read back 21, JUMP skipped LOAD R5
+Test passed: arithmetic, memory, JUMP, and a JNZ-closed loop of exactly 3 iterations with JZ taken at zero
 ```
 
 ## Design Notes
@@ -99,6 +102,9 @@ Test passed: R3 = 21, mem[12] = 21, LDM read back 21, JUMP skipped LOAD R5
   passes through the ALU's MOV operation.
 - The control unit maps instruction opcodes to the ALU's internal operation encoding;
   the two encodings are intentionally decoupled.
+- JZ/JNZ reuse the ALU: the tested register is ORed with itself, so the zero flag
+  reflects its value and no separate comparator is needed. A taken branch loads the
+  9-bit immediate into the PC.
 - Divide-by-zero is defined to return 0 rather than propagate x through the datapath.
 - The memory read bus drives 0 when idle instead of high-impedance, so the design
   contains no internal tri-state and stays synthesizable.

@@ -11,6 +11,8 @@ module control_unit(
     output reg [2:0] reg_src2,
     output reg [15:0] immediate,
     output reg pc_update,
+    output reg jump_z,
+    output reg jump_nz,
     output reg halt
 );
     
@@ -27,6 +29,8 @@ module control_unit(
     parameter XOR    = 4'b1010;
     parameter JUMP   = 4'b1011;
     parameter LDM    = 4'b1100;
+    parameter JZ     = 4'b1101;
+    parameter JNZ    = 4'b1110;
     parameter HALT   = 4'b1111;
     
     always @(*) begin
@@ -42,6 +46,8 @@ module control_unit(
         reg_src2 = 3'b0;
         immediate = 16'b0;
         pc_update = 1;
+        jump_z = 0;
+        jump_nz = 0;
         halt = 0;
         
         case(instruction[15:12])
@@ -87,6 +93,16 @@ module control_unit(
                 // Format: JUMP addr
                 immediate = {4'b0, instruction[11:0]};
                 pc_update = 0; // PC will be updated with immediate
+            end
+            JZ, JNZ: begin
+                // Format: JZ/JNZ Rs, addr (conditional jump on Rs)
+                // Rs is ORed with itself so the ALU zero flag reflects it
+                reg_src1 = instruction[11:9];
+                reg_src2 = instruction[11:9];
+                immediate = {7'b0, instruction[8:0]};
+                alu_op = 4'b0101; // OR operation
+                jump_z  = (instruction[15:12] == JZ);
+                jump_nz = (instruction[15:12] == JNZ);
             end
             HALT: begin
                 halt = 1;

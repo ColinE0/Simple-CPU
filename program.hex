@@ -1,11 +1,18 @@
-120A  // LOAD R1, 10
-140B  // LOAD R2, 11
-2650  // ADD R3, R1, R2
-360C  // STORE R3, 12
-C80C  // LDM R4, 12
-B007  // JUMP 7
-1A63  // LOAD R5, 99 (skipped by the JUMP)
-F000  // HALT
-
+120A  // 0:  LOAD R1, 10
+140B  // 1:  LOAD R2, 11
+2650  // 2:  ADD R3, R1, R2         ; R3 = 21
+3628  // 3:  STORE R3, 40           ; mem[40] = 21
+C828  // 4:  LDM R4, 40             ; R4 = 21
+B007  // 5:  JUMP 7                 ; skip next
+1A63  // 6:  LOAD R5, 99            ; must not execute
+1C03  // 7:  LOAD R6, 3             ; loop counter
+1E01  // 8:  LOAD R7, 1
+4DB8  // 9:  SUB R6, R6, R7         ; loop body: R6 -= 1
+24B8  // 10: ADD R2, R2, R7         ; R2 += 1 each iteration
+EC09  // 11: JNZ R6, 9              ; loop while R6 != 0
+DC0E  // 12: JZ R6, 14              ; taken (R6 == 0), skip next
+1A4D  // 13: LOAD R5, 77            ; must not execute
+3C29  // 14: STORE R6, 41           ; mem[41] = 0
+F000  // 15: HALT
 @FFFF
 0000  // end-of-memory marker: lets $readmemh cover the full range without a warning

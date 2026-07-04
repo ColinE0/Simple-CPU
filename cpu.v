@@ -27,6 +27,8 @@ module cpu(
     wire [2:0] reg_src2;
     wire [15:0] immediate;
     wire pc_update;
+    wire jump_z;
+    wire jump_nz;
     
     // Data paths
     wire [15:0] mem_data;
@@ -38,6 +40,10 @@ module cpu(
     
     // ALU second operand
     wire [15:0] alu_operand2 = alu_src ? immediate : reg_data2;
+
+    // Conditional jump: JZ/JNZ pass the tested register through the ALU,
+    // so the zero flag decides whether the immediate becomes the next PC
+    wire take_branch = (jump_z & alu_zero) | (jump_nz & ~alu_zero);
 
     // Fetch/execute cycle: the single memory port is used for the
     // instruction fetch in FETCH and for data access in EXECUTE
@@ -91,6 +97,8 @@ module cpu(
         .reg_src2(reg_src2),
         .immediate(immediate),
         .pc_update(pc_update),
+        .jump_z(jump_z),
+        .jump_nz(jump_nz),
         .halt(halt)
     );
     
@@ -113,11 +121,12 @@ module cpu(
                 state <= EXECUTE;
             end
             else begin
-                // Update PC after the instruction has executed
-                if (pc_update)
-                    pc <= pc + 1;
-                else
+                // Update PC after the instruction has executed:
+                // unconditional JUMP or a taken JZ/JNZ loads the immediate
+                if (!pc_update || take_branch)
                     pc <= immediate;
+                else
+                    pc <= pc + 1;
                 state <= FETCH;
             end
         end
