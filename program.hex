@@ -6,3 +6,6 @@ C80C  // LDM R4, 12
 B007  // JUMP 7
 1A63  // LOAD R5, 99 (skipped by the JUMP)
 F000  // HALT
+
+@FFFF
+0000  // end-of-memory marker: lets $readmemh cover the full range without a warning

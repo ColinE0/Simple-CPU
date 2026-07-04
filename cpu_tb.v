@@ -60,12 +60,4 @@ module cpu_tb;
         $finish;
     end
     
-    // Monitor signals
-    initial begin
-        $monitor("Time=%0t PC=%h IR=%h ALU=%h R1=%h R2=%h", 
-                 $time, pc_out, uut.ir, alu_out, reg_data_out, uut.reg_data2);
-    end
-    always @(posedge clk) begin
-        $display("FETCH: PC=%h -> MEM[PC]=%h", uut.pc, uut.mem.mem[uut.pc]);
-    end
 endmodule

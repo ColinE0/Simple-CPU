@@ -72,17 +72,15 @@ access, performs the ALU operation, writes back, and updates the PC.
 ├── memory.v            # 64K x 16 unified memory, loaded from hex
 ├── cpu_tb.v            # Self-checking testbench with watchdog
 ├── program.hex         # Demo program (load, add, store, load back, jump, halt)
-├── pad_hex.py          # Expands program.hex to the full 64K image
 ├── 📄 README.md        # This documentation
-├── 📄 .gitignore       # Ignores sim binary and generated hex
+├── 📄 .gitignore       # Ignores the sim binary and waveforms
 └── 📄 LICENSE          # MIT License
 ```
 
 ## Build and Run
-Requires [Icarus Verilog](https://steveicarus.github.io/iverilog/) and Python.
+Requires [Icarus Verilog](https://steveicarus.github.io/iverilog/).
 
 ```bash
-python pad_hex.py            # generate padded_program.hex
 iverilog -o sim cpu_tb.v cpu.v alu.v control_unit.v memory.v register_file.v
 vvp sim
 ```
